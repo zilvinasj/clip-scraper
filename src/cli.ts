@@ -14,18 +14,23 @@ const program = new Command();
 
 program
   .name('clip-scraper')
-  .description('Find and download the most viewed clips from Twitch, Kick, and YouTube')
+  .description('Find and download the most viewed clips from Twitch and Kick')
   .version('1.0.0');
 
 program
   .command('scrape')
   .description('Scrape and download clips for a specific user or get trending clips from across the platform')
   .argument('<username>', 'Username to scrape clips for, or "all" for top trending clips across the entire platform')
-  .option('-p, --platforms [platforms...]', 'Platforms to scrape (twitch, youtube, kick)', ['twitch', 'youtube', 'kick'])
+  .option('-p, --platforms [platforms...]', 'Platforms to scrape (twitch, kick)', ['twitch', 'kick'])
   .option('-l, --limit <number>', 'Maximum number of clips to download (when using "all", gets best clips from across all platforms)', '10')
   .option('-o, --output <path>', 'Output directory for downloaded clips', './downloads')
   .option('-q, --quality <quality>', 'Video quality (e.g., 720, 1080)', 'best')
   .option('--min-views <number>', 'Minimum view count for clips', '0')
+  .option('--social-media', 'Create social media versions (square and vertical) of downloaded clips', true)
+  .option('--no-social-media', 'Disable social media version creation')
+  .option('--social-formats [formats...]', 'Social media formats to create (square, vertical)', ['square', 'vertical'])
+  .option('--social-duration <seconds>', 'Maximum duration for social media clips in seconds', '59')
+  .option('--no-background-blur', 'Disable blurred background for social media versions')
   .action(async (username, options) => {
     try {
       console.log(chalk.blue.bold('🎬 Clip Scraper Started\n'));
@@ -36,12 +41,6 @@ program
       if (options.platforms.includes('twitch')) {
         if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET) {
           requiredEnvVars.push('TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET');
-        }
-      }
-      
-      if (options.platforms.includes('youtube')) {
-        if (!process.env.YOUTUBE_API_KEY) {
-          requiredEnvVars.push('YOUTUBE_API_KEY');
         }
       }
 
@@ -56,7 +55,17 @@ program
         download: {
           outputPath: path.resolve(options.output),
           quality: options.quality,
-          format: 'best'
+          format: 'best',
+          socialMedia: {
+            enabled: options.socialMedia,
+            formats: {
+              square: options.socialFormats.includes('square'),
+              vertical: options.socialFormats.includes('vertical'),
+            },
+            maxDuration: parseInt(options.socialDuration),
+            backgroundBlur: !options.noBackgroundBlur,
+            quality: 'high'
+          }
         }
       };
 
@@ -65,13 +74,6 @@ program
         scraperConfig.twitch = {
           clientId: process.env.TWITCH_CLIENT_ID,
           clientSecret: process.env.TWITCH_CLIENT_SECRET,
-          minViews: parseInt(options.minViews)
-        };
-      }
-
-      if (options.platforms.includes('youtube') && process.env.YOUTUBE_API_KEY) {
-        scraperConfig.youtube = {
-          apiKey: process.env.YOUTUBE_API_KEY,
           minViews: parseInt(options.minViews)
         };
       }
@@ -112,10 +114,6 @@ program
 # Get these from: https://dev.twitch.tv/console/apps
 TWITCH_CLIENT_ID=your_twitch_client_id
 TWITCH_CLIENT_SECRET=your_twitch_client_secret
-
-# YouTube Data API v3 key
-# Get this from: https://console.developers.google.com
-YOUTUBE_API_KEY=your_youtube_api_key
 
 # Kick doesn't require API credentials for public clips
 `;

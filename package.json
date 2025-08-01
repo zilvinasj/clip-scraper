@@ -1,7 +1,7 @@
 {
   "name": "clip-scraper",
   "version": "1.0.0",
-  "description": "Find and download the most viewed clips from Twitch, Kick, and YouTube",
+  "description": "Find and download the most viewed clips from Twitch and Kick",
   "main": "dist/index.js",
   "bin": {
     "clip-scraper": "dist/cli.js"
@@ -16,7 +16,6 @@
   },
   "keywords": [
     "twitch",
-    "youtube", 
     "kick",
     "clips",
     "downloader",

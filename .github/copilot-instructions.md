@@ -2,7 +2,7 @@
 
 # Clip Scraper Project Instructions
 
-This is a TypeScript application that finds and downloads the most viewed clips from Twitch, Kick, and YouTube platforms.
+This is a TypeScript application that finds and downloads the most viewed clips from Twitch and Kick platforms.
 
 ## Project Structure
 - Use modular architecture with separate classes for each platform
@@ -14,7 +14,6 @@ This is a TypeScript application that finds and downloads the most viewed clips 
 ## Platform Integration
 - Twitch: Use Twitch API for clip discovery
 - Kick: Use web scraping or API if available
-- YouTube: Use YouTube Data API v3 for video discovery
 
 ## File Naming Convention
 - Use kebab-case for file names

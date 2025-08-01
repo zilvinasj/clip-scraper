@@ -1,5 +1,4 @@
 import { TwitchPlatform } from './platforms/twitch-platform';
-import { YouTubePlatform } from './platforms/youtube-platform';
 import { KickPlatform } from './platforms/kick-platform';
 import { ClipDownloader } from './downloader/clip-downloader';
 import { Clip, ClipScraperConfig } from './types';
@@ -12,7 +11,7 @@ export class ClipScraper {
 
   constructor(config: ClipScraperConfig) {
     this.config = config;
-    this.downloader = new ClipDownloader(config.download);
+    this.downloader = new ClipDownloader(config.download, config.download.socialMedia || {});
     this.initializePlatforms();
   }
 
@@ -25,16 +24,12 @@ export class ClipScraper {
       this.platforms.set('twitch', new TwitchPlatform(this.config.twitch));
     }
     
-    if (this.config.youtube) {
-      this.platforms.set('youtube', new YouTubePlatform(this.config.youtube));
-    }
-    
     if (this.config.kick) {
       this.platforms.set('kick', new KickPlatform(this.config.kick));
     }
   }
 
-  async scrapeClips(username: string | 'all', platforms: string[] = ['twitch', 'youtube', 'kick'], limit = 10, offset = 0): Promise<Clip[]> {
+  async scrapeClips(username: string | 'all', platforms: string[] = ['twitch', 'kick'], limit = 10, offset = 0): Promise<Clip[]> {
     const searchType = username === 'all' ? 'trending clips across platforms' : `clips for user: ${username}`;
     console.log(chalk.blue(`🔍 Searching for top ${searchType} (offset: ${offset})`));
     
@@ -95,7 +90,7 @@ export class ClipScraper {
     return downloadedFiles;
   }
 
-  async scrapeAndDownload(username: string | 'all', platforms: string[] = ['twitch', 'youtube', 'kick'], limit = 10): Promise<string[]> {
+  async scrapeAndDownload(username: string | 'all', platforms: string[] = ['twitch', 'kick'], limit = 10): Promise<string[]> {
     // Initialize download tracker
     await this.initialize();
     

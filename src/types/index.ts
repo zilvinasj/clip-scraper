@@ -7,7 +7,7 @@ export interface Clip {
   createdAt: Date;
   thumbnailUrl: string;
   creator: string;
-  platform: 'twitch' | 'kick' | 'youtube';
+  platform: 'twitch' | 'kick';
 }
 
 export interface PlatformConfig {
@@ -22,11 +22,20 @@ export interface DownloadOptions {
   outputPath: string;
   quality?: string;
   format?: string;
+  socialMedia?: {
+    enabled?: boolean;
+    formats?: {
+      square?: boolean;
+      vertical?: boolean;
+    };
+    maxDuration?: number;
+    backgroundBlur?: boolean;
+    quality?: string;
+  };
 }
 
 export interface ClipScraperConfig {
   twitch?: PlatformConfig;
   kick?: PlatformConfig;
-  youtube?: PlatformConfig;
   download: DownloadOptions;
 }

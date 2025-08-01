@@ -3,14 +3,29 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { Clip, DownloadOptions } from '../types';
 import { DownloadTracker } from './download-tracker';
+import { SocialMediaProcessor, SocialMediaConfig, PartialSocialMediaConfig } from '../processor/social-media-processor';
 
 export class ClipDownloader {
   private options: DownloadOptions;
   private tracker: DownloadTracker;
+  private socialMediaProcessor: SocialMediaProcessor;
 
-  constructor(options: DownloadOptions) {
+  constructor(options: DownloadOptions, socialMediaConfig?: PartialSocialMediaConfig) {
     this.options = options;
     this.tracker = new DownloadTracker(options.outputPath);
+    
+    // Create social media config with defaults
+    const config: SocialMediaConfig = {
+      enabled: socialMediaConfig?.enabled ?? false,
+      formats: {
+        square: socialMediaConfig?.formats?.square ?? false,
+        vertical: socialMediaConfig?.formats?.vertical ?? false,
+      },
+      maxDuration: socialMediaConfig?.maxDuration ?? 59,
+      backgroundBlur: socialMediaConfig?.backgroundBlur ?? true,
+    };
+    
+    this.socialMediaProcessor = new SocialMediaProcessor(config);
   }
 
   async initialize(): Promise<void> {
@@ -89,6 +104,16 @@ export class ClipDownloader {
         // Mark as downloaded in tracker
         this.tracker.markAsDownloaded(clip);
         await this.tracker.saveDownloadHistory();
+        
+        // Process for social media
+        try {
+          const socialMediaFiles = await this.socialMediaProcessor.processClip(fullPath);
+          if (socialMediaFiles.length > 0) {
+            console.log(`📱 Created ${socialMediaFiles.length} social media versions`);
+          }
+        } catch (error) {
+          console.error(`⚠️  Social media processing failed (original file still available): ${error}`);
+        }
         
         return fullPath;
       } else {

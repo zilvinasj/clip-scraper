@@ -1,13 +1,14 @@
 # Clip Scraper
 
-A TypeScript application that finds and downloads the most viewed clips from Twitch, Kick, and YouTube platforms. Clips are organized in a structured folder format: `/{username}/{platform}/{clipname}_{date}.{extension}`.
+A TypeScript application that finds and downloads the most viewed clips from Twitch and Kick platforms. Clips are organized in a structured folder format: `/{username}/{platform}/{clipname}_{date}.{extension}`.
 
 ## Features
 
-- 🎬 **Multi-platform support**: Twitch, Kick, and YouTube
+- 🎬 **Multi-platform support**: Twitch and Kick
 - 📊 **Top clips discovery**: Find the most viewed clips by username or trending
 - 📥 **Automatic downloading**: Downloads clips with organized folder structure by user and platform
 - 🚫 **Duplicate prevention**: Tracks downloaded clips to avoid re-downloading the same content
+- 📱 **Social media ready**: Automatically creates square (1:1) and vertical (9:16) versions optimized for Instagram, TikTok, and YouTube Shorts
 - ⚙️ **Configurable**: Set minimum view counts, video quality, and download limits
 - 📈 **Download statistics**: View stats about downloaded clips by platform
 - 🎨 **Beautiful CLI**: Colored output with progress indicators
@@ -32,17 +33,24 @@ cp .env.example .env
 # Edit .env with your API credentials
 ```
 
+4. Install FFmpeg (required for social media processing):
+```bash
+# macOS
+brew install ffmpeg
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install ffmpeg
+
+# Windows (using chocolatey)
+choco install ffmpeg
+```
+
 ## API Setup
 
 ### Twitch API
 1. Go to [Twitch Developer Console](https://dev.twitch.tv/console/apps)
 2. Create a new application
 3. Copy Client ID and Client Secret to your `.env` file
-
-### YouTube API
-1. Go to [Google Cloud Console](https://console.developers.google.com)
-2. Enable YouTube Data API v3
-3. Create API key and add it to your `.env` file
 
 ### Kick API
 No API credentials required for public clips.
@@ -69,7 +77,22 @@ npm run dev scrape all
 
 #### Advanced options
 ```bash
-npm run dev scrape <username> --platforms twitch youtube --limit 20 --quality 720 --min-views 1000
+npm run dev scrape <username> --platforms twitch kick --limit 20 --quality 720 --min-views 1000
+```
+
+#### Social media options
+```bash
+# Create only square versions (Instagram posts)
+npm run dev scrape <username> --social-formats square
+
+# Create only vertical versions (TikTok, Instagram Reels, YouTube Shorts)
+npm run dev scrape <username> --social-formats vertical
+
+# Disable social media processing
+npm run dev scrape <username> --no-social-media
+
+# Custom social media settings
+npm run dev scrape <username> --social-duration 30 --no-background-blur
 ```
 
 #### Get top trending clips with high view count filter
@@ -94,11 +117,16 @@ npm run dev clear-history --confirm
 
 ### Command Options
 
-- `--platforms, -p`: Specify platforms (twitch, youtube, kick)
+- `--platforms, -p`: Specify platforms (twitch, kick)
 - `--limit, -l`: Maximum number of clips to download. For "all", this gets the top clips across all platforms combined (default: 10)
 - `--output, -o`: Output directory (default: ./downloads)
 - `--quality, -q`: Video quality (default: best)
 - `--min-views`: Minimum view count filter (default: 0)
+- `--social-media`: Create social media versions (default: enabled)
+- `--no-social-media`: Disable social media version creation
+- `--social-formats`: Social media formats to create: square, vertical (default: both)
+- `--social-duration`: Maximum duration for social media clips in seconds (default: 59)
+- `--no-background-blur`: Disable blurred background for social media versions
 
 ## Examples
 
@@ -113,7 +141,7 @@ npm run dev scrape shroud --platforms twitch --limit 5
 npm run dev scrape all --min-views 10000 --limit 25
 
 # Download trending clips from specific platforms only
-npm run dev scrape all --platforms twitch youtube --limit 15
+npm run dev scrape all --platforms twitch kick --limit 15
 
 # Download clips in 720p quality to custom folder
 npm run dev scrape pokimane --quality 720 --output ./my-clips
@@ -130,10 +158,12 @@ clip-scraper/
 │   ├── platforms/          # Platform-specific implementations
 │   │   ├── base-platform.ts
 │   │   ├── twitch-platform.ts
-│   │   ├── youtube-platform.ts
 │   │   └── kick-platform.ts
 │   ├── downloader/         # Video download functionality
-│   │   └── clip-downloader.ts
+│   │   ├── clip-downloader.ts
+│   │   └── download-tracker.ts
+│   ├── processor/          # Video processing functionality
+│   │   └── social-media-processor.ts
 │   ├── types/              # TypeScript type definitions
 │   │   └── index.ts
 │   ├── clip-scraper.ts     # Main scraper class
@@ -176,18 +206,31 @@ downloads/
 ├── username1/
 │   ├── twitch/
 │   │   ├── amazing_clip_2024-08-01.mp4
-│   │   └── epic_play_2024-08-02.mp4
-│   ├── youtube/
-│   │   └── funny_moment_2024-08-01.mp4
+│   │   ├── amazing_clip_2024-08-01_square.mp4     # 1:1 for Instagram
+│   │   ├── amazing_clip_2024-08-01_vertical.mp4   # 9:16 for TikTok/Reels
+│   │   ├── epic_play_2024-08-02.mp4
+│   │   ├── epic_play_2024-08-02_square.mp4
+│   │   └── epic_play_2024-08-02_vertical.mp4
 │   └── kick/
-│       └── short_clip_2024-08-01.mp4
+│       ├── short_clip_2024-08-01.mp4
+│       ├── short_clip_2024-08-01_square.mp4
+│       └── short_clip_2024-08-01_vertical.mp4
 ├── username2/
 │   └── twitch/
-│       └── highlight_2024-08-01.mp4
-└── Nintendo of America/
-    └── youtube/
-        └── Nintendo_Direct_Partner_Showcase_2024-08-01.mp4
+│       ├── highlight_2024-08-01.mp4
+│       ├── highlight_2024-08-01_square.mp4
+│       └── highlight_2024-08-01_vertical.mp4
 ```
+
+### Social Media Processing
+
+The application automatically creates optimized versions for social media platforms:
+
+- **Square versions (1080x1080)**: Perfect for Instagram posts and stories
+- **Vertical versions (1080x1920)**: Optimized for TikTok, Instagram Reels, and YouTube Shorts
+- **Smart cropping**: Uses intelligent scaling and optional blurred backgrounds
+- **Duration optimization**: Automatically trims clips to 59 seconds max (configurable)
+- **High quality**: Maintains video quality while optimizing for mobile viewing
 
 ## Configuration
 
@@ -197,9 +240,6 @@ The application uses environment variables for API credentials:
 # Twitch API credentials
 TWITCH_CLIENT_ID=your_twitch_client_id
 TWITCH_CLIENT_SECRET=your_twitch_client_secret
-
-# YouTube Data API v3 key
-YOUTUBE_API_KEY=your_youtube_api_key
 ```
 
 ## Error Handling
