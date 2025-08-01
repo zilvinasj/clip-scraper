@@ -16,6 +16,10 @@ export class ClipScraper {
     this.initializePlatforms();
   }
 
+  async initialize(): Promise<void> {
+    await this.downloader.initialize();
+  }
+
   private initializePlatforms(): void {
     if (this.config.twitch) {
       this.platforms.set('twitch', new TwitchPlatform(this.config.twitch));
@@ -88,6 +92,9 @@ export class ClipScraper {
   }
 
   async scrapeAndDownload(username: string | 'all', platforms: string[] = ['twitch', 'youtube', 'kick'], limit = 10): Promise<string[]> {
+    // Initialize download tracker
+    await this.initialize();
+    
     const clips = await this.scrapeClips(username, platforms, limit);
     
     if (clips.length === 0) {

@@ -128,4 +128,56 @@ YOUTUBE_API_KEY=your_youtube_api_key
     console.log(chalk.yellow('   and fill in your actual API credentials'));
   });
 
+program
+  .command('stats')
+  .description('Show download statistics and history')
+  .option('-o, --output <path>', 'Output directory to check', './downloads')
+  .action(async (options) => {
+    try {
+      const { ClipDownloader } = await import('./downloader/clip-downloader');
+      const downloader = new ClipDownloader({ outputPath: path.resolve(options.output) });
+      await downloader.initialize();
+      
+      const stats = await downloader.getStats();
+      
+      console.log(chalk.blue.bold('📊 Download Statistics\n'));
+      console.log(chalk.white(`Total clips downloaded: ${stats.total}`));
+      
+      if (Object.keys(stats.byPlatform).length > 0) {
+        console.log(chalk.cyan('\nBy platform:'));
+        for (const [platform, count] of Object.entries(stats.byPlatform)) {
+          console.log(chalk.white(`  ${platform}: ${count} clips`));
+        }
+      } else {
+        console.log(chalk.gray('No clips downloaded yet'));
+      }
+    } catch (error) {
+      console.error(chalk.red(`Error getting stats: ${error}`));
+    }
+  });
+
+program
+  .command('clear-history')
+  .description('Clear download history (allows re-downloading previously downloaded clips)')
+  .option('-o, --output <path>', 'Output directory to clear history for', './downloads')
+  .option('--confirm', 'Skip confirmation prompt')
+  .action(async (options) => {
+    try {
+      if (!options.confirm) {
+        console.log(chalk.yellow('⚠️  This will clear the download history and allow re-downloading of all clips.'));
+        console.log(chalk.yellow('   Use --confirm to skip this prompt.'));
+        return;
+      }
+
+      const { ClipDownloader } = await import('./downloader/clip-downloader');
+      const downloader = new ClipDownloader({ outputPath: path.resolve(options.output) });
+      await downloader.initialize();
+      await downloader.clearHistory();
+      
+      console.log(chalk.green('✅ Download history cleared successfully!'));
+    } catch (error) {
+      console.error(chalk.red(`Error clearing history: ${error}`));
+    }
+  });
+
 program.parse();

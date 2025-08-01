@@ -18,6 +18,9 @@ build/
 # Downloaded clips
 downloads/
 
+# Download tracking file
+.downloaded_clips.json
+
 # Logs
 logs/
 *.log

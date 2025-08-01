@@ -9,7 +9,7 @@ This is a TypeScript application that finds and downloads the most viewed clips 
 - Implement proper error handling and retry mechanisms
 - Use async/await for all asynchronous operations
 - Follow TypeScript best practices with proper typing
-- Organize downloaded clips in folders: /{username}/{clipname}_{date}
+- Organize downloaded clips in folders: /{username}/{platform}/{clipname}_{date}
 
 ## Platform Integration
 - Twitch: Use Twitch API for clip discovery
@@ -20,7 +20,7 @@ This is a TypeScript application that finds and downloads the most viewed clips 
 - Use kebab-case for file names
 - Use PascalCase for class names
 - Use camelCase for variables and functions
-- Downloaded clips: {clipname}_{YYYY-MM-DD}_{platform}.{extension}
+- Downloaded clips: {clipname}_{YYYY-MM-DD}.{extension} (platform is indicated by folder structure)
 
 ## Dependencies
 - axios: For HTTP requests

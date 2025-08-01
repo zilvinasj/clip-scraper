@@ -1,13 +1,15 @@
 # Clip Scraper
 
-A TypeScript application that finds and downloads the most viewed clips from Twitch, Kick, and YouTube platforms. Clips are organized in a structured folder format: `/{username}/{clipname}_{date}_{platform}.{extension}`.
+A TypeScript application that finds and downloads the most viewed clips from Twitch, Kick, and YouTube platforms. Clips are organized in a structured folder format: `/{username}/{platform}/{clipname}_{date}.{extension}`.
 
 ## Features
 
 - 🎬 **Multi-platform support**: Twitch, Kick, and YouTube
 - 📊 **Top clips discovery**: Find the most viewed clips by username or trending
-- 📥 **Automatic downloading**: Downloads clips with organized folder structure
+- 📥 **Automatic downloading**: Downloads clips with organized folder structure by user and platform
+- 🚫 **Duplicate prevention**: Tracks downloaded clips to avoid re-downloading the same content
 - ⚙️ **Configurable**: Set minimum view counts, video quality, and download limits
+- 📈 **Download statistics**: View stats about downloaded clips by platform
 - 🎨 **Beautiful CLI**: Colored output with progress indicators
 - 🔧 **TypeScript**: Fully typed for better development experience
 
@@ -78,6 +80,16 @@ npm run dev scrape all --limit 50 --min-views 100000
 #### Generate sample config
 ```bash
 npm run dev config
+```
+
+#### View download statistics
+```bash
+npm run dev stats
+```
+
+#### Clear download history (allows re-downloading clips)
+```bash
+npm run dev clear-history --confirm
 ```
 
 ### Command Options
@@ -162,14 +174,19 @@ Downloaded clips are organized as follows:
 ```
 downloads/
 ├── username1/
-│   ├── amazing_clip_2024-08-01_twitch.mp4
-│   ├── funny_moment_2024-08-01_youtube.mp4
-│   └── epic_play_2024-08-02_kick.mp4
+│   ├── twitch/
+│   │   ├── amazing_clip_2024-08-01.mp4
+│   │   └── epic_play_2024-08-02.mp4
+│   ├── youtube/
+│   │   └── funny_moment_2024-08-01.mp4
+│   └── kick/
+│       └── short_clip_2024-08-01.mp4
 ├── username2/
-│   └── highlight_2024-08-01_twitch.mp4
-└── all/
-    ├── trending_clip1_2024-08-01_twitch.mp4
-    └── trending_clip2_2024-08-01_youtube.mp4
+│   └── twitch/
+│       └── highlight_2024-08-01.mp4
+└── Nintendo of America/
+    └── youtube/
+        └── Nintendo_Direct_Partner_Showcase_2024-08-01.mp4
 ```
 
 ## Configuration
