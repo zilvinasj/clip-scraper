@@ -17,6 +17,10 @@ export class ClipDownloader {
     await this.tracker.loadDownloadHistory();
   }
 
+  isAlreadyDownloaded(clip: Clip): boolean {
+    return this.tracker.isAlreadyDownloaded(clip);
+  }
+
   async downloadClip(clip: Clip): Promise<string> {
     // Check if already downloaded
     if (this.tracker.isAlreadyDownloaded(clip)) {
