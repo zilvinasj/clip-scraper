@@ -1,0 +1,131 @@
+#!/usr/bin/env node
+
+import { Command } from 'commander';
+import { config } from 'dotenv';
+import { ClipScraper } from './clip-scraper';
+import { ClipScraperConfig } from './types';
+import chalk from 'chalk';
+import path from 'path';
+
+// Load environment variables
+config();
+
+const program = new Command();
+
+program
+  .name('clip-scraper')
+  .description('Find and download the most viewed clips from Twitch, Kick, and YouTube')
+  .version('1.0.0');
+
+program
+  .command('scrape')
+  .description('Scrape and download clips for a user or all users')
+  .argument('<username>', 'Username to scrape clips for, or "all" for trending clips')
+  .option('-p, --platforms [platforms...]', 'Platforms to scrape (twitch, youtube, kick)', ['twitch', 'youtube', 'kick'])
+  .option('-l, --limit <number>', 'Maximum number of clips to download', '10')
+  .option('-o, --output <path>', 'Output directory for downloaded clips', './downloads')
+  .option('-q, --quality <quality>', 'Video quality (e.g., 720, 1080)', 'best')
+  .option('--min-views <number>', 'Minimum view count for clips', '0')
+  .action(async (username, options) => {
+    try {
+      console.log(chalk.blue.bold('🎬 Clip Scraper Started\n'));
+
+      // Validate required environment variables
+      const requiredEnvVars = [];
+      
+      if (options.platforms.includes('twitch')) {
+        if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET) {
+          requiredEnvVars.push('TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET');
+        }
+      }
+      
+      if (options.platforms.includes('youtube')) {
+        if (!process.env.YOUTUBE_API_KEY) {
+          requiredEnvVars.push('YOUTUBE_API_KEY');
+        }
+      }
+
+      if (requiredEnvVars.length > 0) {
+        console.error(chalk.red('❌ Missing required environment variables:'));
+        requiredEnvVars.forEach(env => console.error(chalk.red(`   - ${env}`)));
+        console.log(chalk.yellow('\n💡 Create a .env file with the required API credentials'));
+        process.exit(1);
+      }
+
+      const scraperConfig: ClipScraperConfig = {
+        download: {
+          outputPath: path.resolve(options.output),
+          quality: options.quality,
+          format: 'best'
+        }
+      };
+
+      // Configure platforms based on available credentials and user selection
+      if (options.platforms.includes('twitch') && process.env.TWITCH_CLIENT_ID) {
+        scraperConfig.twitch = {
+          clientId: process.env.TWITCH_CLIENT_ID,
+          clientSecret: process.env.TWITCH_CLIENT_SECRET,
+          minViews: parseInt(options.minViews)
+        };
+      }
+
+      if (options.platforms.includes('youtube') && process.env.YOUTUBE_API_KEY) {
+        scraperConfig.youtube = {
+          apiKey: process.env.YOUTUBE_API_KEY,
+          minViews: parseInt(options.minViews)
+        };
+      }
+
+      if (options.platforms.includes('kick')) {
+        scraperConfig.kick = {
+          minViews: parseInt(options.minViews)
+        };
+      }
+
+      const scraper = new ClipScraper(scraperConfig);
+      
+      const downloadedFiles = await scraper.scrapeAndDownload(
+        username,
+        options.platforms,
+        parseInt(options.limit)
+      );
+
+      if (downloadedFiles.length > 0) {
+        console.log(chalk.green.bold('\n🎉 Download Complete!'));
+        console.log(chalk.white(`📁 Files saved to: ${options.output}`));
+        console.log(chalk.white(`📊 Total files downloaded: ${downloadedFiles.length}`));
+      } else {
+        console.log(chalk.yellow('\n📭 No clips were downloaded'));
+      }
+
+    } catch (error) {
+      console.error(chalk.red(`\n❌ Error: ${error}`));
+      process.exit(1);
+    }
+  });
+
+program
+  .command('config')
+  .description('Generate a sample .env configuration file')
+  .action(() => {
+    const sampleConfig = `# Twitch API credentials
+# Get these from: https://dev.twitch.tv/console/apps
+TWITCH_CLIENT_ID=your_twitch_client_id
+TWITCH_CLIENT_SECRET=your_twitch_client_secret
+
+# YouTube Data API v3 key
+# Get this from: https://console.developers.google.com
+YOUTUBE_API_KEY=your_youtube_api_key
+
+# Kick doesn't require API credentials for public clips
+`;
+
+    console.log(chalk.blue.bold('📝 Sample .env configuration:'));
+    console.log(chalk.gray('─'.repeat(50)));
+    console.log(sampleConfig);
+    console.log(chalk.gray('─'.repeat(50)));
+    console.log(chalk.yellow('💡 Copy this to a .env file in your project root'));
+    console.log(chalk.yellow('   and fill in your actual API credentials'));
+  });
+
+program.parse();

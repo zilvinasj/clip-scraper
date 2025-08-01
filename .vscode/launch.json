@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Clip Scraper",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/cli.js",
+            "args": ["scrape", "all", "--limit", "5"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "preLaunchTask": "Build and Run Clip Scraper"
+        },
+        {
+            "name": "Debug TypeScript",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/cli.ts",
+            "args": ["scrape", "all", "--limit", "5"],
+            "runtimeArgs": ["-r", "ts-node/register"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        }
+    ]
+}
