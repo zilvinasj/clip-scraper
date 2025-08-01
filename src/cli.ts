@@ -19,10 +19,10 @@ program
 
 program
   .command('scrape')
-  .description('Scrape and download clips for a user or all users')
-  .argument('<username>', 'Username to scrape clips for, or "all" for trending clips')
+  .description('Scrape and download clips for a specific user or get trending clips from across the platform')
+  .argument('<username>', 'Username to scrape clips for, or "all" for top trending clips across the entire platform')
   .option('-p, --platforms [platforms...]', 'Platforms to scrape (twitch, youtube, kick)', ['twitch', 'youtube', 'kick'])
-  .option('-l, --limit <number>', 'Maximum number of clips to download', '10')
+  .option('-l, --limit <number>', 'Maximum number of clips to download (when using "all", gets best clips from across all platforms)', '10')
   .option('-o, --output <path>', 'Output directory for downloaded clips', './downloads')
   .option('-q, --quality <quality>', 'Video quality (e.g., 720, 1080)', 'best')
   .option('--min-views <number>', 'Minimum view count for clips', '0')

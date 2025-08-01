@@ -59,14 +59,20 @@ npm run build
 npm run dev scrape <username>
 ```
 
-#### Scrape trending clips from all platforms
+#### Scrape top trending clips from across all platforms
 ```bash
 npm run dev scrape all
 ```
+*When using "all", the app will fetch the most popular/trending clips from each platform and return the top clips by view count across all platforms combined.*
 
 #### Advanced options
 ```bash
 npm run dev scrape <username> --platforms twitch youtube --limit 20 --quality 720 --min-views 1000
+```
+
+#### Get top trending clips with high view count filter
+```bash
+npm run dev scrape all --limit 50 --min-views 100000
 ```
 
 #### Generate sample config
@@ -77,7 +83,7 @@ npm run dev config
 ### Command Options
 
 - `--platforms, -p`: Specify platforms (twitch, youtube, kick)
-- `--limit, -l`: Maximum number of clips to download (default: 10)
+- `--limit, -l`: Maximum number of clips to download. For "all", this gets the top clips across all platforms combined (default: 10)
 - `--output, -o`: Output directory (default: ./downloads)
 - `--quality, -q`: Video quality (default: best)
 - `--min-views`: Minimum view count filter (default: 0)
@@ -91,11 +97,17 @@ npm run dev scrape ninja
 # Download top 5 Twitch clips for user "shroud"
 npm run dev scrape shroud --platforms twitch --limit 5
 
-# Download trending clips with minimum 10k views
-npm run dev scrape all --min-views 10000
+# Download top 25 trending clips across all platforms with minimum 10k views
+npm run dev scrape all --min-views 10000 --limit 25
+
+# Download trending clips from specific platforms only
+npm run dev scrape all --platforms twitch youtube --limit 15
 
 # Download clips in 720p quality to custom folder
 npm run dev scrape pokimane --quality 720 --output ./my-clips
+
+# Get the absolute top trending clips across all platforms
+npm run dev scrape all --limit 100 --min-views 50000
 ```
 
 ## Project Structure

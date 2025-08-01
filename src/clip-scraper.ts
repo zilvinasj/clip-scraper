@@ -31,7 +31,8 @@ export class ClipScraper {
   }
 
   async scrapeClips(username: string | 'all', platforms: string[] = ['twitch', 'youtube', 'kick'], limit = 10): Promise<Clip[]> {
-    console.log(chalk.blue(`🔍 Searching for top clips for: ${username}`));
+    const searchType = username === 'all' ? 'trending clips across platforms' : `clips for user: ${username}`;
+    console.log(chalk.blue(`🔍 Searching for top ${searchType}`));
     
     const allClips: Clip[] = [];
     
@@ -43,10 +44,21 @@ export class ClipScraper {
       }
 
       try {
-        console.log(chalk.cyan(`📡 Fetching clips from ${platformName}...`));
-        const clips = await platform.getTopClips(username, limit);
+        const searchTypeMsg = username === 'all' ? 'trending clips' : `clips for ${username}`;
+        console.log(chalk.cyan(`📡 Fetching ${searchTypeMsg} from ${platformName}...`));
+        
+        // For "all", get more clips per platform to have better variety
+        const platformLimit = username === 'all' ? Math.max(limit, 20) : limit;
+        const clips = await platform.getTopClips(username, platformLimit);
+        
         allClips.push(...clips);
         console.log(chalk.green(`✅ Found ${clips.length} clips from ${platformName}`));
+        
+        if (clips.length > 0 && username === 'all') {
+          // Show a preview of top clip from this platform
+          const topClip = clips[0];
+          console.log(chalk.gray(`   🏆 Top: "${topClip.title}" (${topClip.viewCount.toLocaleString()} views)`));
+        }
       } catch (error) {
         console.error(chalk.red(`❌ Error fetching clips from ${platformName}: ${error}`));
       }
@@ -58,6 +70,11 @@ export class ClipScraper {
       .slice(0, limit);
 
     console.log(chalk.blue(`📊 Total clips found: ${sortedClips.length}`));
+    
+    if (sortedClips.length > 0 && username === 'all') {
+      console.log(chalk.magenta(`🌟 Top clip overall: "${sortedClips[0].title}" from ${sortedClips[0].platform} (${sortedClips[0].viewCount.toLocaleString()} views)`));
+    }
+    
     return sortedClips;
   }
 

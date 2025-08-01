@@ -11,44 +11,100 @@ export class KickPlatform extends BasePlatform {
 
   async getTopClips(username: string | 'all', limit = 10): Promise<Clip[]> {
     try {
-      let clips: any[] = [];
-
       if (username === 'all') {
-        // Get trending clips
-        const response = await axios.get(`${this.baseUrl}/clips/trending`, {
-          params: {
-            limit: Math.min(limit, 50)
-          }
-        });
-        clips = response.data.data || [];
+        return await this.getTopTrendingClips(limit);
       } else {
-        // Get user's channel first
-        const channelResponse = await axios.get(`${this.baseUrl}/channels/${username}`);
-        
-        if (!channelResponse.data) {
-          throw new Error(`User ${username} not found on Kick`);
-        }
-
-        const channelId = channelResponse.data.id;
-        
-        // Get clips for the specific channel
-        const clipsResponse = await axios.get(`${this.baseUrl}/channels/${channelId}/clips`, {
-          params: {
-            limit: Math.min(limit, 50)
-          }
-        });
-        clips = clipsResponse.data.data || [];
+        return await this.getUserClips(username, limit);
       }
-
-      return clips
-        .filter((clip: any) => !this.config.minViews || clip.views >= this.config.minViews)
-        .sort((a: any, b: any) => b.views - a.views)
-        .slice(0, limit)
-        .map((clip: any) => this.formatClipData(clip));
     } catch (error) {
       console.error(`Error fetching Kick clips: ${error}`);
       return [];
     }
+  }
+
+  private async getTopTrendingClips(limit: number): Promise<Clip[]> {
+    const allClips: any[] = [];
+
+    try {
+      // Try multiple trending endpoints to get more clips
+      const endpoints = [
+        `${this.baseUrl}/clips/trending`,
+        `${this.baseUrl}/clips/featured`,
+        `${this.baseUrl}/clips`
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await axios.get(endpoint, {
+            params: {
+              limit: Math.min(limit * 2, 100) // Get more clips to filter from
+            }
+          });
+          
+          if (response.data.data) {
+            allClips.push(...response.data.data);
+          }
+        } catch (endpointError) {
+          console.warn(`Failed to fetch from ${endpoint}: ${endpointError}`);
+        }
+      }
+
+      // Remove duplicates based on clip ID
+      const uniqueClips = allClips.filter((clip, index, self) => 
+        index === self.findIndex(c => c.id === clip.id)
+      );
+
+      return uniqueClips
+        .filter((clip: any) => !this.config.minViews || clip.views >= this.config.minViews)
+        .sort((a: any, b: any) => (b.views || 0) - (a.views || 0))
+        .slice(0, limit)
+        .map((clip: any) => this.formatClipData(clip));
+
+    } catch (error) {
+      console.warn(`Kick trending clips failed, trying basic endpoint: ${error}`);
+      
+      // Fallback to basic clips endpoint
+      try {
+        const response = await axios.get(`${this.baseUrl}/clips`, {
+          params: { limit: Math.min(limit, 50) }
+        });
+        
+        const clips = response.data.data || [];
+        return clips
+          .filter((clip: any) => !this.config.minViews || clip.views >= this.config.minViews)
+          .sort((a: any, b: any) => (b.views || 0) - (a.views || 0))
+          .slice(0, limit)
+          .map((clip: any) => this.formatClipData(clip));
+      } catch (fallbackError) {
+        console.error(`All Kick endpoints failed: ${fallbackError}`);
+        return [];
+      }
+    }
+  }
+
+  private async getUserClips(username: string, limit: number): Promise<Clip[]> {
+    // Get user's channel first
+    const channelResponse = await axios.get(`${this.baseUrl}/channels/${username}`);
+    
+    if (!channelResponse.data) {
+      throw new Error(`User ${username} not found on Kick`);
+    }
+
+    const channelId = channelResponse.data.id;
+    
+    // Get clips for the specific channel
+    const clipsResponse = await axios.get(`${this.baseUrl}/channels/${channelId}/clips`, {
+      params: {
+        limit: Math.min(limit, 50)
+      }
+    });
+    
+    const clips = clipsResponse.data.data || [];
+    return clips
+      .filter((clip: any) => !this.config.minViews || clip.views >= this.config.minViews)
+      .sort((a: any, b: any) => (b.views || 0) - (a.views || 0))
+      .slice(0, limit)
+      .map((clip: any) => this.formatClipData(clip));
   }
 
   protected async authenticate(): Promise<void> {

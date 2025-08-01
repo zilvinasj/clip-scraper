@@ -15,70 +15,126 @@ export class YouTubePlatform extends BasePlatform {
     }
 
     try {
-      let searchParams: any = {
-        part: 'snippet,statistics',
+      if (username === 'all') {
+        return await this.getTopTrendingVideos(limit);
+      } else {
+        return await this.getUserVideos(username, limit);
+      }
+    } catch (error) {
+      console.error(`Error fetching YouTube videos: ${error}`);
+      return [];
+    }
+  }
+
+  private async getTopTrendingVideos(limit: number): Promise<Clip[]> {
+    // Use YouTube's trending videos endpoint
+    const trendingResponse = await axios.get(`${this.baseUrl}/videos`, {
+      params: {
+        part: 'snippet,statistics,contentDetails',
+        chart: 'mostPopular',
+        regionCode: 'US', // Can be made configurable
+        videoCategoryId: '20', // Gaming category
+        maxResults: Math.min(limit, 50),
+        key: this.config.apiKey
+      }
+    });
+
+    // Also get some recent popular videos
+    const searchResponse = await axios.get(`${this.baseUrl}/search`, {
+      params: {
+        part: 'snippet',
         type: 'video',
         order: 'viewCount',
-        maxResults: Math.min(limit, 50), // YouTube API limit
-        publishedAfter: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        maxResults: Math.min(limit, 25),
+        publishedAfter: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // Last 3 days
+        videoCategoryId: '20', // Gaming category
         key: this.config.apiKey
-      };
-
-      if (username !== 'all') {
-        // Get channel ID first
-        const channelResponse = await axios.get(`${this.baseUrl}/channels`, {
-          params: {
-            part: 'id',
-            forUsername: username,
-            key: this.config.apiKey
-          }
-        });
-
-        if (channelResponse.data.items.length === 0) {
-          // Try searching by channel name
-          const searchResponse = await axios.get(`${this.baseUrl}/search`, {
-            params: {
-              part: 'snippet',
-              type: 'channel',
-              q: username,
-              maxResults: 1,
-              key: this.config.apiKey
-            }
-          });
-
-          if (searchResponse.data.items.length === 0) {
-            throw new Error(`Channel ${username} not found on YouTube`);
-          }
-
-          searchParams.channelId = searchResponse.data.items[0].snippet.channelId;
-        } else {
-          searchParams.channelId = channelResponse.data.items[0].id;
-        }
       }
+    });
 
-      const response = await axios.get(`${this.baseUrl}/search`, {
-        params: searchParams
-      });
-
-      // Get detailed video information including statistics
-      const videoIds = response.data.items.map((item: any) => item.id.videoId).join(',');
-      const videosResponse = await axios.get(`${this.baseUrl}/videos`, {
+    // Get detailed info for search results
+    let recentVideos = [];
+    if (searchResponse.data.items.length > 0) {
+      const videoIds = searchResponse.data.items.map((item: any) => item.id.videoId).join(',');
+      const detailsResponse = await axios.get(`${this.baseUrl}/videos`, {
         params: {
           part: 'snippet,statistics,contentDetails',
           id: videoIds,
           key: this.config.apiKey
         }
       });
-
-      return videosResponse.data.items
-        .filter((video: any) => !this.config.minViews || parseInt(video.statistics.viewCount) >= this.config.minViews)
-        .sort((a: any, b: any) => parseInt(b.statistics.viewCount) - parseInt(a.statistics.viewCount))
-        .slice(0, limit)
-        .map((video: any) => this.formatClipData(video));
-    } catch (error) {
-      console.error(`Error fetching YouTube videos: ${error}`);
-      return [];
+      recentVideos = detailsResponse.data.items;
     }
+
+    // Combine trending and recent popular videos
+    const allVideos = [...trendingResponse.data.items, ...recentVideos];
+
+    return allVideos
+      .filter((video: any) => !this.config.minViews || parseInt(video.statistics.viewCount) >= this.config.minViews)
+      .sort((a: any, b: any) => parseInt(b.statistics.viewCount) - parseInt(a.statistics.viewCount))
+      .slice(0, limit)
+      .map((video: any) => this.formatClipData(video));
+  }
+
+  private async getUserVideos(username: string, limit: number): Promise<Clip[]> {
+    let searchParams: any = {
+      part: 'snippet,statistics',
+      type: 'video',
+      order: 'viewCount',
+      maxResults: Math.min(limit, 50), // YouTube API limit
+      publishedAfter: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      key: this.config.apiKey
+    };
+
+    // Get channel ID first
+    const channelResponse = await axios.get(`${this.baseUrl}/channels`, {
+      params: {
+        part: 'id',
+        forUsername: username,
+        key: this.config.apiKey
+      }
+    });
+
+    if (channelResponse.data.items.length === 0) {
+      // Try searching by channel name
+      const searchResponse = await axios.get(`${this.baseUrl}/search`, {
+        params: {
+          part: 'snippet',
+          type: 'channel',
+          q: username,
+          maxResults: 1,
+          key: this.config.apiKey
+        }
+      });
+
+      if (searchResponse.data.items.length === 0) {
+        throw new Error(`Channel ${username} not found on YouTube`);
+      }
+
+      searchParams.channelId = searchResponse.data.items[0].snippet.channelId;
+    } else {
+      searchParams.channelId = channelResponse.data.items[0].id;
+    }
+
+    const response = await axios.get(`${this.baseUrl}/search`, {
+      params: searchParams
+    });
+
+    // Get detailed video information including statistics
+    const videoIds = response.data.items.map((item: any) => item.id.videoId).join(',');
+    const videosResponse = await axios.get(`${this.baseUrl}/videos`, {
+      params: {
+        part: 'snippet,statistics,contentDetails',
+        id: videoIds,
+        key: this.config.apiKey
+      }
+    });
+
+    return videosResponse.data.items
+      .filter((video: any) => !this.config.minViews || parseInt(video.statistics.viewCount) >= this.config.minViews)
+      .sort((a: any, b: any) => parseInt(b.statistics.viewCount) - parseInt(a.statistics.viewCount))
+      .slice(0, limit)
+      .map((video: any) => this.formatClipData(video));
   }
 
   protected async authenticate(): Promise<void> {
