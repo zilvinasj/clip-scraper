@@ -23,6 +23,7 @@ export class ClipDownloader {
       },
       maxDuration: socialMediaConfig?.maxDuration ?? 59,
       backgroundBlur: socialMediaConfig?.backgroundBlur ?? true,
+      videoScale: socialMediaConfig?.videoScale ?? 1.5, // Default to 150% scale
     };
     
     this.socialMediaProcessor = new SocialMediaProcessor(config);

@@ -11,6 +11,7 @@ export interface SocialMediaConfig {
   };
   maxDuration: number;
   backgroundBlur: boolean;
+  videoScale: number; // Scale factor for the main video (1.0 = 100%, 1.5 = 150%, etc.)
 }
 
 export interface PartialSocialMediaConfig {
@@ -21,6 +22,7 @@ export interface PartialSocialMediaConfig {
   };
   maxDuration?: number;
   backgroundBlur?: boolean;
+  videoScale?: number;
 }
 
 export interface VideoInfo {
@@ -180,7 +182,9 @@ export class SocialMediaProcessor {
       let filterGraph = `[0:v]scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080[v]`;
       
       if (this.config.backgroundBlur) {
-        filterGraph = `[0:v]split=2[bg][fg];[bg]scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080,gblur=sigma=20[blurred];[fg]scale=iw*min(1080/iw\\,1080/ih):ih*min(1080/iw\\,1080/ih)[scaled];[blurred][scaled]overlay=(W-w)/2:(H-h)/2[v]`;
+        // Calculate scaled dimensions based on videoScale setting
+        const scaledSize = Math.round(1080 * this.config.videoScale);
+        filterGraph = `[0:v]split=2[bg][fg];[bg]scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080,gblur=sigma=20[blurred];[fg]scale=iw*min(1080/iw\\,${scaledSize}/ih):ih*min(1080/iw\\,${scaledSize}/ih)[scaled];[blurred][scaled]overlay=(W-w)/2:(H-h)/2[v]`;
       }
 
       const args = [
@@ -211,12 +215,18 @@ export class SocialMediaProcessor {
   private async createVerticalVersion(inputPath: string, duration: number): Promise<string | null> {
     try {
       const outputPath = this.generateOutputPath(inputPath, '_vertical');
-      
-      let filterGraph = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[v]`;
-      
-      if (this.config.backgroundBlur) {
-        filterGraph = `[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=20[blurred];[fg]scale=iw*min(1080/iw\\,1920/ih):ih*min(1080/iw\\,1920/ih)[scaled];[blurred][scaled]overlay=(W-w)/2:(H-h)/2[v]`;
-      }
+
+    let filterGraph = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[v]`;
+    
+    if (this.config.backgroundBlur) {
+      // Scale the video based on videoScale setting, with blurred background
+      const scaledHeight = Math.round(1920 * this.config.videoScale);
+      filterGraph = `[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=20[blurred];[fg]scale=iw*min(1080/iw\\,${scaledHeight}/ih):1080[scaled];[blurred][scaled]overlay=(W-w)/2:(H-h)/2[v]`;
+    } else {
+      // If no blur, just scale the original video to fill the screen
+      const scaledHeight = Math.round(1920 * this.config.videoScale);
+      filterGraph = `[0:v]scale=1080:${scaledHeight}:force_original_aspect_ratio=increase,crop=1080:1920[v]`;
+    }
 
       const args = [
         '-y',
