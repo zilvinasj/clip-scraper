@@ -10,7 +10,7 @@ async function testProcessor() {
         backgroundBlur: true,
         videoScale: 1, // Default to 150% scale
     });
-    const testFile = 'downloads/Agent00/twitch/so_much_aura_in_one_clip_2025-07-26.mp4'; // Example file path, adjust as needed
+    const testFile = 'downloads/dangerlyoha/twitch/yfffffff_2025-07-29.mp4'; // Example file path, adjust as needed
 
     console.log('Testing social media processor...');
     try {
